@@ -1,5 +1,6 @@
 import sys
 from PIL import Image
+import numpy as np
 
 def main():
   # Windows style
@@ -19,30 +20,32 @@ def main():
 
   if(sys.argv[1] == 'negation'):
     if(len(sys.argv) == 2):
-      negation()
+      original_img = tryOpenImage('pic.jpg')
+      new_img = negation()
     else:
-      negation(sys.argv[1])
+      original_img = tryOpenImage(sys.argv[2])
+      new_img = negation(sys.argv[2])
   else:
     if(len(sys.argv) == 3):
-      gamma(float(sys.argv[2]))
+      original_img = tryOpenImage('pic.jpg')
+      new_img = gamma(float(sys.argv[2]))
     else:
-      gamma(float(sys.argv[2]), sys.argv[3])
+      original_img = tryOpenImage(sys.argv[3])
+      new_img = gamma(float(sys.argv[2]), sys.argv[3])
+  
+  Image.fromarray(np.hstack((np.array(original_img),np.array(new_img)))).show()
 
 
 def negation(imgFileName = 'pic.jpg'):
   img = negateImg(imgFileName)
-  img.show()
+  return img
 
 def gamma(gammaValue = 1, imgFileName = 'pic.jpg'):
   img = gammaCorrection(gammaValue, imgFileName)
-  img.show()
+  return img
 
 def negateImg(imgFileName):
-  try:
-    img = Image.open(imgFileName)
-  except:
-    print "Error occured, unable to open file"
-    sys.exit()
+  img = tryOpenImage(imgFileName)
 
   img = toGrayScale(img)
   mode = img.mode
@@ -62,21 +65,23 @@ def negateImg(imgFileName):
 
 def toGrayScale(img):
   w,h = img.size
-  # Create new Image with mode L : gray scale
-  grayScaleImage = Image.new('L', (w, h))
-  for i in range(w):
-    for j in range(h):
-      pixelValue = int(sum(img.getpixel((i,j)))/3)
-      grayScaleImage.putpixel((i, j), (pixelValue))
   
-  return grayScaleImage
+  # test if rgb
+  try:
+    len(img.getpixel((0,0)))>1
+
+    # Create new Image with mode L : gray scale
+    grayScaleImage = Image.new('L', (w, h))
+    for i in range(w):
+      for j in range(h):
+        pixelValue = int(sum(img.getpixel((i,j)))/3)
+        grayScaleImage.putpixel((i, j), (pixelValue))
+    return grayScaleImage
+  except:
+    return img
 
 def gammaCorrection(gammaValue, imgFileName):
-  try:
-    img = Image.open(imgFileName)
-  except:
-    print "Error occured, unable to open file"
-    sys.exit()
+  img = tryOpenImage(imgFileName)
   img = toGrayScale(img)
   w,h = img.size
   mode = img.mode
@@ -92,6 +97,13 @@ def gammaCorrection(gammaValue, imgFileName):
         newPixel = (r, g, b)
         img.putpixel((i,j), newPixel)
   return img
+
+def tryOpenImage(imgFileName = 'pic.jpg'):
+  try:
+    return toGrayScale(Image.open(imgFileName))
+  except:
+    print "Unable to open image"
+    sys.exit()
 
 if __name__ == '__main__':
   main()
